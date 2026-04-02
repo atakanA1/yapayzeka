@@ -83,20 +83,23 @@ if not st.session_state.authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # --- 5. ANA PANEL (HİYERARŞİK MENÜ) ---
+    # --- 5. ANA PANEL (HİYERARŞİK SEÇİM) ---
     with st.sidebar:
         st.title(f"🟢 {st.session_state.user_name}")
         st.divider()
 
-        # 1. ADIM: EĞİTİM SEVİYESİ
-        seviye = st.selectbox("Eğitim Seviyesi:", ["Sohbet Modu", "Lise (9-12)", "Sanat Atölyesi"])
+        # 1. ADIM: EĞİTİM SEVİYESİ / SINIF SEÇİMİ
+        seviye = st.selectbox("Eğitim Seviyesi:", 
+                              ["Sohbet Modu", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf", "Sanat Atölyesi"])
 
         alan = "Genel"
         ders = "Genel Sohbet"
 
         # 2. ADIM: ALAN SEÇİMİ
-        if seviye == "Lise (9-12)":
-            alan = st.selectbox("Alan Seçin:", ["Müzik", "Görsel Sanatlar"])
+        lise_siniflari = ["9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf"]
+        
+        if seviye in lise_siniflari:
+            alan = st.selectbox(f"{seviye} Alanı:", ["Müzik", "Görsel Sanatlar"])
         elif seviye == "Sanat Atölyesi":
             alan = st.selectbox("Uzmanlık Alanı:", ["Akademik Çizim", "Resim Teknikleri"])
 
@@ -124,7 +127,7 @@ else:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # --- 6. MESAJ İŞLEME VE DİNAMİK HOCA MANTIĞI ---
+    # --- 6. MESAJ İŞLEME VE AKILLI ÖĞRETMEN MANTIĞI ---
     if prompt := st.chat_input("Mesajınızı yazın..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -139,24 +142,25 @@ else:
             res = "Atakan Türedi Bey'in en sevdiği öğretmen, yani benim de en sevdiğim hoca tabii ki **Fuat Lafçı** hocadır! 🎻"
         else:
             try:
-                # Dinamik Hoca Tavrı Belirleme
-                hoca_tavri = "Genel bir asistan"
+                # Dinamik Hoca Tavrı ve Müfredat Seviyesi Belirleme
+                hoca_tavri = "Yardımcı bir asistan"
+                
                 if "✏️ Desen" in ders:
-                    hoca_tavri = "Disiplinli bir Desen Hocası. Işık, gölge, oran-orantı ve anatomi tekniklerine odaklanarak teknik bilgi ver."
+                    hoca_tavri = f"{seviye} seviyesinde bir Desen Hocası. Oran-orantı, çizgi kalitesi ve anatomi üzerine teknik bilgi ver."
                 elif "🎨 Temel Sanat" in ders:
-                    hoca_tavri = "Sanat Kuramcısı. Renk teorisi, altın oran, kompozisyon kuralları ve sanat felsefesi üzerinden rehberlik et."
+                    hoca_tavri = f"{seviye} müfredatına uygun Sanat Kuramcısı. Renk teorisi ve kompozisyon öğret."
                 elif "🖌️ Resim" in ders:
-                    hoca_tavri = "Tecrübeli bir Ressam. Yağlı boya, akrilik teknikleri, tuval hazırlığı ve fırça hakimiyeti üzerine pratik bilgiler ver."
+                    hoca_tavri = "Atölye Ressamı. Uygulamalı teknikler, tuval kullanımı ve boya bilgisinde uzman bir hoca gibi davran."
                 elif any(x in ders for x in ["Müzik", "Piyano", "Türk Müziği"]):
-                    hoca_tavri = "Konservatuvar hocası. Nota, makam, ritim ve icra detayları üzerine disiplinli bir eğitim ver."
+                    hoca_tavri = f"{seviye} seviyesinde bir Konservatuvar hocası. Nota ve teknik detaylara odaklan."
 
                 sys = f"""
                 Sen @bi'sin. Yapımcın Atakan Türedi Bey. 
                 Şu anki Konumun: {seviye} > {alan} > {ders}
                 Rolün: {hoca_tavri}
                 Kullanıcın: {st.session_state.user_name}
-                Atakan Bey'in en sevdiği hoca Fuat Lafçı'dır. 
-                Eğer bir ders seçiliyse, o dersin öğretmeni gibi yapıcı, bilgili ve yol gösterici bir üslup kullan.
+                Önemli Bilgi: Atakan Bey'in en sevdiği hoca Fuat Lafçı'dır. 
+                Üslubun: Seçilen dersin öğretmeni gibi bilgili, disiplinli fakat öğrenciyi teşvik eden bir dilde konuş.
                 """
                 
                 chat_res = client.chat.completions.create(
@@ -165,7 +169,7 @@ else:
                 )
                 res = chat_res.choices[0].message.content
             except Exception as e:
-                res = f"Bağlantı hatası Atakan Bey. Lütfen API anahtarınızı veya internetinizi kontrol edin."
+                res = "Bağlantı hatası Atakan Bey. Lütfen sistemi kontrol edin."
 
         with st.chat_message("assistant"):
             st.markdown(res)
