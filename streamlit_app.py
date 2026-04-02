@@ -22,7 +22,7 @@ def save_users(users):
 def make_hash(password):
     return hashlib.sha256(str.encode(password)).hexdigest()
 
-# API ANAHTARI (Sitenin Secrets kısmından alacak)
+# API ANAHTARI
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY")
 
 if not GROQ_API_KEY:
@@ -83,14 +83,15 @@ if not st.session_state.authenticated:
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # --- 5. ANA PANEL ---
+    # --- 5. ANA PANEL (DERSLER EKLENDİ) ---
     with st.sidebar:
         st.title(f"🟢 {st.session_state.user_name}")
         st.divider()
-        sinif = st.selectbox("Eğitim Seviyesi:", ["Sohbet Modu", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf"])
-        ders = "Genel Sohbet"
-        if sinif != "Sohbet Modu":
-            ders = st.selectbox("Ders Seç:", ["Müzik Teorisi", "Türk Müziği", "Piyano", "Çalgı"])
+        sinif = st.selectbox("Eğitim Seviyesi:", ["Sohbet Modu", "9. Sınıf", "10. Sınıf", "11. Sınıf", "12. Sınıf", "Sanat Atölyesi"])
+        
+        # Yeni eklenen dersler ve eski dersler birleştirildi
+        ders_listesi = ["Genel Sohbet", "Müzik Teorisi", "Türk Müziği", "Piyano", "Çalgı", "✏️ Desen", "🎨 Temel Sanat Eğitimi", "🖌️ Resim (Atölye)"]
+        ders = st.selectbox("Ders Seç:", ders_listesi)
         
         if st.button("Çıkış Yap"):
             st.session_state.authenticated = False
@@ -105,7 +106,7 @@ else:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    # --- 6. MESAJ İŞLEME ---
+    # --- 6. MESAJ İŞLEME VE HOCA MODU ---
     if prompt := st.chat_input("Mesajınızı yazın..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -113,14 +114,30 @@ else:
 
         p_lower = prompt.lower()
         
-        # ÖZEL FİLTRELER (ATAKAN TÜREDİ BEY & FUAT LAFÇI)
+        # ÖZEL FİLTRELER
         if any(t in p_lower for t in ["sahibin kim", "kurucun kim", "yapımcın kim", "seni kim yarattı"]):
             res = "Beni **Atakan Türedi Bey** yarattı ve kurdu. O benim sahibimdir. 🚀"
         elif any(t in p_lower for t in ["en sevdiğin hoca", "en sevdiğin öğretmen", "atakanın en sevdiği hoca"]):
             res = "Atakan Türedi Bey'in en sevdiği öğretmen, yani benim de en sevdiğim hoca tabii ki **Fuat Lafçı** hocadır! 🎻"
         else:
             try:
-                sys = f"Sen @bi'sin. Yapımcın Atakan Türedi Bey. Şu an {sinif} - {ders} modundasın. Kullanıcın: {st.session_state.user_name}"
+                # DERSLERE GÖRE ÖZEL HOCA TALİMATLARI
+                sanat_inst = ""
+                if ders == "✏️ Desen":
+                    sanat_inst = "Bir Desen hocası gibi davran. Işık-gölge, anatomi, oran-orantı ve çizgi kalitesi üzerine teknik bilgiler ver."
+                elif ders == "🎨 Temel Sanat Eğitimi":
+                    sanat_inst = "Bir Sanat Tarihi ve Tasarım hocası gibi davran. Renk teorisi, kompozisyon kuralları ve estetik hakkında konuş."
+                elif ders == "🖌️ Resim (Atölye)":
+                    sanat_inst = "Bir Atölye hocası gibi davran. Tuval hazırlığı, boya teknikleri ve uygulama süreçlerinde öğrencine rehberlik et."
+
+                sys = f"""
+                Sen @bi'sin. Yapımcın Atakan Türedi Bey. 
+                Şu an {sinif} - {ders} modundasın. 
+                {sanat_inst}
+                Eğer bir ders modundaysan, o dersin öğretmeni gibi disiplinli ama yapıcı konuş. 
+                Kullanıcın: {st.session_state.user_name}
+                """
+                
                 chat_res = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "system", "content": sys}] + st.session_state.messages[-10:]
